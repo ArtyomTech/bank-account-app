@@ -1,0 +1,106 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '4.1.0'
+    id 'io.spring.dependency-management' version '1.1.7'
+    id 'org.openapi.generator' version '7.12.0'
+    id 'com.diffplug.spotless' version '7.0.3'
+}
+
+group = 'ee.swedbank'
+version = '0.0.1-SNAPSHOT'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+
+dependencies {
+    // Spring Boot
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.springframework.boot:spring-boot-starter-flyway'
+
+    // Flyway
+    runtimeOnly 'org.flywaydb:flyway-database-postgresql'
+
+    // PostgreSQL driver
+    runtimeOnly 'org.postgresql:postgresql'
+
+    // JWT
+    implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
+
+    // API docs
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.9'
+
+    // Mapping
+    implementation 'org.mapstruct:mapstruct:1.6.3'
+
+    // Lombok
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+    annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.3'
+    annotationProcessor 'org.projectlombok:lombok-mapstruct-binding:0.2.0'
+
+    // Tests
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+def generatedDir = layout.buildDirectory.get().dir("generated").asFile
+
+openApiGenerate {
+    generatorName = 'spring'
+    inputSpec     = "${projectDir}/src/main/resources/openapi.yaml"
+    outputDir     = generatedDir.absolutePath
+    apiPackage    = 'ee.swedbank.account_service.api'
+    modelPackage  = 'ee.swedbank.account_service.dto'
+    generateApiTests           = false
+    generateModelTests         = false
+    generateApiDocumentation   = false
+    generateModelDocumentation = false
+    configOptions = [
+        interfaceOnly          : 'true',
+        useSpringBoot3         : 'true',
+        useJakartaEe           : 'true',
+        useTags                : 'true',
+        openApiNullable        : 'false',
+        hideGenerationTimestamp: 'true',
+        skipDefaultInterface   : 'true'
+    ]
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir new File(generatedDir, "src/main/java")
+        }
+    }
+}
+
+compileJava {
+    dependsOn tasks.openApiGenerate
+    options.compilerArgs += ['-Amapstruct.defaultComponentModel=spring']
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
+
+spotless {
+    java {
+        target 'src/main/java/**/*.java', 'src/test/java/**/*.java'
+        googleJavaFormat()
+        removeUnusedImports()
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
+}

@@ -1,0 +1,213 @@
+<div class="page-container">
+  <!-- Breadcrumb -->
+  <nz-breadcrumb style="margin-bottom: 16px">
+    <nz-breadcrumb-item><a routerLink="/home">Accounts</a></nz-breadcrumb-item>
+    <nz-breadcrumb-item>Account Overview</nz-breadcrumb-item>
+  </nz-breadcrumb>
+
+  @if (account$ | async; as account) {
+    @if (txState$ | async; as txState) {
+
+    <!-- Top row: balance card + deposit/withdraw side by side -->
+    <div nz-row [nzGutter]="20" style="margin-bottom: 20px">
+
+      <!-- Account balance card -->
+      <div nz-col [nzXs]="24" [nzMd]="14">
+        <nz-card style="height: 100%; border-radius: 8px">
+          <div nz-row nzAlign="middle" [nzGutter]="16">
+            <div nz-col>
+              <nz-icon nzType="bank" nzTheme="outline" style="font-size: 36px; color: #1890ff" />
+            </div>
+            <div nz-col nzFlex="auto">
+              <div style="font-size: 12px; color: #888; margin-bottom: 2px">
+                {{ account.id }}
+              </div>
+              <nz-statistic
+                nzTitle="Current Balance"
+                [nzValue]="account.balance"
+                [nzSuffix]="account.currency"
+                [nzValueStyle]="{ color: '#3f8600', fontWeight: '600', fontSize: '32px' }"
+              />
+            </div>
+            <div nz-col>
+              <nz-tag nzColor="blue" nzSize="large">{{ account.currency }}</nz-tag>
+            </div>
+          </div>
+        </nz-card>
+      </div>
+
+      <!-- Deposit / Withdraw card -->
+      <div nz-col [nzXs]="24" [nzMd]="10">
+        <nz-card style="height: 100%; border-radius: 8px">
+          <nz-tabs
+            [nzSelectedIndex]="moneyMode === 'deposit' ? 0 : moneyMode === 'withdraw' ? 1 : 2"
+            (nzSelectedIndexChange)="onTabChange($event)"
+          >
+            <nz-tab nzTitle="Deposit"></nz-tab>
+            <nz-tab nzTitle="Withdraw"></nz-tab>
+            <nz-tab nzTitle="Exchange"></nz-tab>
+          </nz-tabs>
+
+          @if (txState.submitError) {
+            <nz-alert nzType="error" [nzMessage]="txState.submitError" nzShowIcon style="margin-bottom: 12px" />
+          }
+
+          @if (moneyMode === 'exchange') {
+            <!-- Exchange form -->
+            @if (otherAccounts$ | async; as otherAccounts) {
+              @if (otherAccounts.length === 0) {
+                <nz-empty nzNotFoundContent="No other accounts to exchange with" />
+              } @else {
+                <form nz-form [formGroup]="exchangeForm" nzLayout="vertical" (ngSubmit)="submitExchange(otherAccounts)">
+                  <nz-form-item>
+                    <nz-form-label nzRequired>Target Account</nz-form-label>
+                    <nz-form-control nzErrorTip="Select target account">
+                      <nz-select formControlName="targetAccountId" nzSize="large" nzPlaceHolder="Select account" style="width:100%" nzShowSearch>
+                        @for (acc of otherAccounts; track acc.id) {
+                          <nz-option [nzValue]="acc.id" [nzLabel]="acc.currency + ' — ' + (acc.balance | number:'1.2-2') + '  ·  …' + acc.id.slice(-8)"></nz-option>
+                        }
+                      </nz-select>
+                    </nz-form-control>
+                  </nz-form-item>
+                  <nz-form-item>
+                    <nz-form-label nzRequired>Amount</nz-form-label>
+                    <nz-form-control nzErrorTip="Enter a positive amount">
+                      <nz-input-number
+                        formControlName="amount"
+                        [nzMin]="0.01" [nzStep]="1" [nzPrecision]="2"
+                        nzSize="large" style="width:100%" placeholder="0.00"
+                      />
+                    </nz-form-control>
+                  </nz-form-item>
+                  <button nz-button nzType="primary" nzSize="large" nzBlock
+                    [nzLoading]="txState.submitting" [disabled]="exchangeForm.invalid" type="submit">
+                    <nz-icon nzType="swap" />
+                    Exchange
+                  </button>
+                </form>
+              }
+            }
+          } @else {
+            <!-- Deposit / Withdraw form -->
+            <form nz-form [formGroup]="moneyForm" nzLayout="vertical" (ngSubmit)="submitMoney()">
+              <nz-form-item>
+                <nz-form-label nzRequired>Amount</nz-form-label>
+                <nz-form-control nzErrorTip="Enter a positive amount">
+                  <nz-input-number
+                    formControlName="amount"
+                    [nzMin]="0.01" [nzStep]="1" [nzPrecision]="2"
+                    nzSize="large" style="width: 100%" placeholder="0.00"
+                  />
+                </nz-form-control>
+              </nz-form-item>
+              <nz-form-item>
+                <nz-form-label>Description</nz-form-label>
+                <nz-form-control>
+                  <input nz-input formControlName="description" placeholder="Optional note" nzSize="large" />
+                </nz-form-control>
+              </nz-form-item>
+              <button
+                nz-button
+                [nzType]="moneyMode === 'deposit' ? 'primary' : 'default'"
+                [class.ant-btn-dangerous]="moneyMode === 'withdraw'"
+                nzSize="large" nzBlock
+                [nzLoading]="txState.submitting"
+                [disabled]="moneyForm.invalid"
+                type="submit"
+              >
+                <nz-icon [nzType]="moneyMode === 'deposit' ? 'arrow-down' : 'arrow-up'" />
+                {{ moneyMode === 'deposit' ? 'Deposit' : 'Withdraw' }}
+              </button>
+            </form>
+          }
+        </nz-card>
+      </div>
+    </div>
+
+    <!-- Balance History Chart -->
+    @if (txState.items.length > 0) {
+      <app-balance-chart [transactions]="txState.items" [currency]="account.currency" />
+    }
+
+      <!-- Transaction History -->
+      <nz-card nzTitle="Transaction History" style="border-radius: 8px">
+        @if (txState.items.length === 0 && !txState.loading) {
+          <nz-empty nzNotFoundContent="No transactions yet" />
+        } @else {
+          <div #txScrollContainer style="height: 520px; overflow-y: auto; padding-right: 4px">
+            <nz-list [nzDataSource]="txState.items" nzItemLayout="horizontal" [nzRenderItem]="nzRenderItem">
+              <ng-template #nzRenderItem let-tx>
+                <nz-list-item
+                  style="cursor: pointer; padding: 12px 16px; border-radius: 6px; transition: background 0.2s"
+                  (click)="navigateToTransaction(tx)"
+                  (mouseenter)="$any($event.currentTarget).style.background='#f5f5f5'"
+                  (mouseleave)="$any($event.currentTarget).style.background='transparent'"
+                >
+                  <nz-list-item-meta
+                    [nzTitle]="txTitle"
+                    [nzDescription]="txDesc"
+                    [nzAvatar]="txAvatar"
+                  >
+                    <ng-template #txAvatar>
+                      <div
+                        style="width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px;"
+                        [style.background]="tx.type === 'DEPOSIT' || tx.type === 'EXCHANGE_IN' ? '#f6ffed' : '#fff2f0'"
+                      >
+                        <nz-icon
+                          [nzType]="txTypeIcons[tx.type]"
+                          [style.color]="tx.type === 'DEPOSIT' || tx.type === 'EXCHANGE_IN' ? '#52c41a' : '#ff4d4f'"
+                        />
+                      </div>
+                    </ng-template>
+                    <ng-template #txTitle>
+                      <span style="font-weight: 500">{{ tx.type | titlecase }}</span>
+                      &nbsp;
+                      <nz-tag [nzColor]="txTypeColors[tx.type]" style="font-size: 11px">{{ tx.currency }}</nz-tag>
+                    </ng-template>
+                    <ng-template #txDesc>
+                      <span style="color: #888; font-size: 12px">
+                        {{ tx.createdAt | date: 'medium' }}
+                        @if (tx.description) { &nbsp;&bull;&nbsp;{{ tx.description }} }
+                      </span>
+                    </ng-template>
+                  </nz-list-item-meta>
+                  <ul nz-list-item-actions>
+                    <nz-list-item-action>
+                      <span
+                        [style.color]="tx.type === 'DEPOSIT' || tx.type === 'EXCHANGE_IN' ? '#52c41a' : '#ff4d4f'"
+                        style="font-size: 16px; font-weight: 600"
+                      >
+                        {{ tx.type === 'DEPOSIT' || tx.type === 'EXCHANGE_IN' ? '+' : '-' }}{{ tx.amount | number: '1.2-4' }} {{ tx.currency }}
+                      </span>
+                    </nz-list-item-action>
+                  </ul>
+                </nz-list-item>
+              </ng-template>
+            </nz-list>
+
+            <!-- Infinite scroll sentinel -->
+            <div #scrollSentinel style="height: 40px; display: flex; align-items: center; justify-content: center">
+              @if (txState.loading) {
+                <nz-spin nzTip="Loading more…" />
+              } @else if (!txState.hasMore && txState.items.length > 0) {
+                <span style="color: #aaa; font-size: 13px">— All transactions loaded —</span>
+              }
+            </div>
+          </div>
+        }
+      </nz-card>
+    }
+  } @else {
+    <div style="text-align: center; padding: 60px 0">
+      <nz-spin nzSize="large" nzTip="Loading account…" />
+    </div>
+  }
+</div>
+
+<style>
+  .page-container {
+    padding: 24px;
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+</style>

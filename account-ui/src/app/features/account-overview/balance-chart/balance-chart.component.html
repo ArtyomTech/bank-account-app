@@ -1,0 +1,22 @@
+<nz-card
+  nzTitle="Balance History"
+  style="margin-bottom: 20px; border-radius: 8px"
+  [nzExtra]="datePicker"
+>
+  <ng-template #datePicker>
+    <nz-date-picker
+      [(ngModel)]="selectedDate"
+      (ngModelChange)="onDateChange($event)"
+      nzSize="small"
+      [nzAllowClear]="false"
+    />
+  </ng-template>
+
+  @if (hasData) {
+    <div style="overflow-x: auto; overflow-y: hidden">
+      <div echarts [options]="chartOption" [style.width.px]="chartWidth" style="height: 280px"></div>
+    </div>
+  } @else {
+    <nz-empty nzNotFoundContent="No transactions on this day" style="margin: 24px 0" />
+  }
+</nz-card>

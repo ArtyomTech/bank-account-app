@@ -1,0 +1,47 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: bank-postgres
+    environment:
+      POSTGRES_DB: bankdb
+      POSTGRES_USER: bankuser
+      POSTGRES_PASSWORD: bankpass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bankuser -d bankdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  account-service:
+    build:
+      context: ./account-service
+      dockerfile: Dockerfile
+    container_name: account-service
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/bankdb
+      SPRING_DATASOURCE_USERNAME: bankuser
+      SPRING_DATASOURCE_PASSWORD: bankpass
+      SPRING_JPA_SHOW_SQL: "false"
+      JWT_SECRET: bXlWZXJ5U2VjcmV0S2V5VGhhdFNob3VsZEJlQXRMZWFzdDI1NkJpdHNMb25nRm9ySFMyNTY=
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  account-ui:
+    build:
+      context: ./account-ui
+      dockerfile: Dockerfile
+    container_name: account-ui
+    ports:
+      - "4200:80"
+    depends_on:
+      - account-service
+
+volumes:
+  postgres_data:

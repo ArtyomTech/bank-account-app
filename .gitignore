@@ -1,0 +1,63 @@
+# ========================
+# Java / Gradle
+# ========================
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+*.class
+*.jar
+*.war
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+hs_err_pid*
+replay_pid*
+
+# ========================
+# Spring Boot
+# ========================
+target/
+*.log
+
+# ========================
+# IDE
+# ========================
+.idea/
+*.iml
+*.ipr
+*.iws
+.classpath
+.project
+.settings/
+*.factorypath
+.vscode/
+.DS_Store
+Thumbs.db
+
+# ========================
+# Node / Angular
+# ========================
+node_modules/
+dist/
+.angular/
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ========================
+# Environment / Secrets
+# ========================
+.env
+.env.*
+!.env.example
+
+# ========================
+# Docker
+# ========================
+postgres_data/

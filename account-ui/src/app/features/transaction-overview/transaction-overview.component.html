@@ -1,0 +1,105 @@
+<div class="page-container">
+  <!-- Breadcrumb -->
+  <nz-breadcrumb style="margin-bottom: 16px">
+    <nz-breadcrumb-item><a routerLink="/home">Accounts</a></nz-breadcrumb-item>
+    <nz-breadcrumb-item>
+      <a [routerLink]="['/accounts', accountId]">Account</a>
+    </nz-breadcrumb-item>
+    <nz-breadcrumb-item>Transaction</nz-breadcrumb-item>
+  </nz-breadcrumb>
+
+  @if (loading) {
+    <div style="text-align: center; padding: 60px 0">
+      <nz-spin nzSize="large" nzTip="Loading transaction…" />
+    </div>
+  } @else if (transaction) {
+    <nz-card style="border-radius: 8px; margin-bottom: 16px">
+      <!-- Title row -->
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px">
+        <div style="display: flex; align-items: center; gap: 12px">
+          <button nz-button nzType="default" nzShape="circle" (click)="goBack()">
+            <nz-icon nzType="left" />
+          </button>
+          <h2 style="margin: 0; font-size: 20px">Transaction Details</h2>
+          <nz-tag [nzColor]="txTypeColors[transaction.type]">{{ transaction.type }}</nz-tag>
+        </div>
+        <button
+          nz-button
+          nzType="primary"
+          [nzLoading]="exporting"
+          (click)="exportPdf()"
+          style="border-radius: 6px"
+        >
+          <nz-icon nzType="download" />
+          Export PDF
+        </button>
+      </div>
+
+      <nz-divider />
+
+      <!-- Details -->
+      <nz-descriptions nzBordered nzLayout="horizontal" [nzColumn]="{ xs: 1, sm: 1, md: 2 }">
+        <nz-descriptions-item nzTitle="Transaction ID" [nzSpan]="2">
+          <code style="font-size: 12px; word-break: break-all">{{ transaction.id }}</code>
+        </nz-descriptions-item>
+        <nz-descriptions-item nzTitle="Type">
+          <nz-tag [nzColor]="txTypeColors[transaction.type]">{{ transaction.type }}</nz-tag>
+        </nz-descriptions-item>
+        <nz-descriptions-item nzTitle="Currency">
+          <nz-tag nzColor="blue">{{ transaction.currency }}</nz-tag>
+        </nz-descriptions-item>
+        <nz-descriptions-item nzTitle="Amount">
+          <span
+            style="font-size: 18px; font-weight: 600"
+            [style.color]="
+              transaction.type === 'DEPOSIT' || transaction.type === 'EXCHANGE_IN'
+                ? '#52c41a'
+                : '#ff4d4f'
+            "
+          >
+            {{ transaction.type === 'DEPOSIT' || transaction.type === 'EXCHANGE_IN' ? '+' : '-'
+            }}{{ transaction.amount | number: '1.2-4' }} {{ transaction.currency }}
+          </span>
+        </nz-descriptions-item>
+        <nz-descriptions-item nzTitle="Balance After">
+          <span style="font-size: 18px; font-weight: 600; color: #3f8600">
+            {{ transaction.balanceAfter | number: '1.2-4' }} {{ transaction.currency }}
+          </span>
+        </nz-descriptions-item>
+        <nz-descriptions-item nzTitle="Date & Time" [nzSpan]="2">
+          <nz-icon nzType="clock-circle" nzTheme="outline" style="margin-right: 6px; color: #888" />
+          {{ transaction.createdAt | date: 'full' }}
+        </nz-descriptions-item>
+        @if (transaction.description) {
+          <nz-descriptions-item nzTitle="Description" [nzSpan]="2">
+            {{ transaction.description }}
+          </nz-descriptions-item>
+        }
+        <nz-descriptions-item nzTitle="Account ID" [nzSpan]="2">
+          <code style="font-size: 12px; word-break: break-all">{{ accountId }}</code>
+        </nz-descriptions-item>
+      </nz-descriptions>
+    </nz-card>
+  } @else {
+    <nz-result
+      nzStatus="404"
+      nzTitle="Transaction Not Found"
+      nzSubTitle="This transaction could not be found. Please navigate from the account overview."
+    >
+      <div nz-result-extra>
+        <button nz-button nzType="primary" (click)="goBack()">
+          <nz-icon nzType="left" />
+          Back to Account
+        </button>
+      </div>
+    </nz-result>
+  }
+</div>
+
+<style>
+  .page-container {
+    padding: 24px;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+</style>

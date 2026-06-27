@@ -1,0 +1,515 @@
+openapi: 3.0.3
+info:
+  title: Bank Account API
+  description: REST API for bank account management
+  version: 1.0.0
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Auth
+    description: Authentication
+  - name: Users
+    description: User management
+  - name: Accounts
+    description: Account and balance operations
+  - name: Transactions
+    description: Transaction history
+
+paths:
+  /auth/register:
+    post:
+      tags: [ Auth ]
+      operationId: register
+      summary: Register a new user
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Email already in use
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/login:
+    post:
+      tags: [ Auth ]
+      operationId: login
+      summary: Authenticate and receive JWT
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Authentication successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /users/{userId}/accounts:
+    post:
+      tags: [ Accounts ]
+      operationId: createAccount
+      summary: Create a new account for a user
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAccountRequest'
+      responses:
+        '201':
+          description: Account created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    get:
+      tags: [ Accounts ]
+      operationId: getUserAccounts
+      summary: Get all accounts for a user
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '200':
+          description: List of accounts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AccountResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /accounts/{accountId}/balance:
+    get:
+      tags: [ Accounts ]
+      operationId: getBalance
+      summary: Get account balance
+      parameters:
+        - $ref: '#/components/parameters/AccountId'
+      responses:
+        '200':
+          description: Account balance
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BalanceResponse'
+        '404':
+          description: Account not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /accounts/{accountId}/deposit:
+    post:
+      tags: [ Accounts ]
+      operationId: deposit
+      summary: Deposit money into an account
+      parameters:
+        - $ref: '#/components/parameters/AccountId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MoneyRequest'
+      responses:
+        '200':
+          description: Deposit successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionResponse'
+        '400':
+          description: Invalid amount
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Account not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /accounts/{accountId}/withdraw:
+    post:
+      tags: [ Accounts ]
+      operationId: withdraw
+      summary: Withdraw money from an account
+      parameters:
+        - $ref: '#/components/parameters/AccountId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MoneyRequest'
+      responses:
+        '200':
+          description: Withdrawal successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionResponse'
+        '404':
+          description: Account not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Insufficient funds
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /accounts/exchange:
+    post:
+      tags: [ Accounts ]
+      operationId: exchange
+      summary: Exchange currency between two accounts
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExchangeRequest'
+      responses:
+        '200':
+          description: Exchange successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExchangeResponse'
+        '400':
+          description: Invalid exchange request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Account not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Insufficient funds
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /accounts/{accountId}/transactions:
+    get:
+      tags: [ Transactions ]
+      operationId: getTransactionHistory
+      summary: Get transaction history for an account
+      parameters:
+        - $ref: '#/components/parameters/AccountId'
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: Transaction history
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionPage'
+        '404':
+          description: Account not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  parameters:
+    AccountId:
+      name: accountId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    UserId:
+      name: userId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  schemas:
+    Currency:
+      type: string
+      enum: [ EUR, USD, SEK, GBP, VND ]
+      description: Supported currencies
+
+    TransactionType:
+      type: string
+      enum: [ DEPOSIT, WITHDRAWAL, EXCHANGE_IN, EXCHANGE_OUT ]
+      description: Type of transaction
+
+    CreateUserRequest:
+      type: object
+      required: [ firstName, lastName, email ]
+      properties:
+        firstName:
+          type: string
+          minLength: 1
+          maxLength: 100
+        lastName:
+          type: string
+          minLength: 1
+          maxLength: 100
+        email:
+          type: string
+          format: email
+          maxLength: 255
+
+    UserResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    CreateAccountRequest:
+      type: object
+      required: [ currency ]
+      properties:
+        currency:
+          $ref: '#/components/schemas/Currency'
+
+    AccountResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        currency:
+          $ref: '#/components/schemas/Currency'
+        balance:
+          type: number
+        createdAt:
+          type: string
+          format: date-time
+
+    BalanceResponse:
+      type: object
+      properties:
+        accountId:
+          type: string
+          format: uuid
+        currency:
+          $ref: '#/components/schemas/Currency'
+        balance:
+          type: number
+
+    MoneyRequest:
+      type: object
+      required: [ amount ]
+      properties:
+        amount:
+          type: number
+          minimum: 0.01
+        description:
+          type: string
+          maxLength: 500
+
+    TransactionResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        accountId:
+          type: string
+          format: uuid
+        type:
+          $ref: '#/components/schemas/TransactionType'
+        amount:
+          type: number
+        currency:
+          $ref: '#/components/schemas/Currency'
+        balanceAfter:
+          type: number
+        description:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    ExchangeRequest:
+      type: object
+      required: [ sourceAccountId, targetAccountId, amount ]
+      properties:
+        sourceAccountId:
+          type: string
+          format: uuid
+        targetAccountId:
+          type: string
+          format: uuid
+        amount:
+          type: number
+          minimum: 0.01
+
+    ExchangeResponse:
+      type: object
+      properties:
+        sourceTransaction:
+          $ref: '#/components/schemas/TransactionResponse'
+        targetTransaction:
+          $ref: '#/components/schemas/TransactionResponse'
+        exchangeRate:
+          type: number
+
+    RegisterRequest:
+      type: object
+      required: [ firstName, lastName, email, password ]
+      properties:
+        firstName:
+          type: string
+          minLength: 1
+          maxLength: 100
+        lastName:
+          type: string
+          minLength: 1
+          maxLength: 100
+        email:
+          type: string
+          format: email
+          maxLength: 255
+        password:
+          type: string
+          minLength: 8
+          maxLength: 100
+
+    LoginRequest:
+      type: object
+      required: [ email, password ]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+
+    AuthResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        userId:
+          type: string
+          format: uuid
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+
+    TransactionPage:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/TransactionResponse'
+        page:
+          type: integer
+        totalPages:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+
+    ErrorResponse:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

@@ -1,0 +1,25 @@
+/* You can add global styles to this file, and also import other style files */
+
+/* Always reserve scrollbar gutter so layout never shifts when scrollbar appears/disappears */
+html {
+  scrollbar-gutter: stable;
+}
+
+/* Replace not-allowed cursor on disabled elements with default arrow */
+button:disabled,
+button[disabled],
+input:disabled,
+select:disabled,
+textarea:disabled,
+[disabled],
+.ant-btn[disabled],
+.ant-btn-disabled,
+.ant-input[disabled],
+.ant-select-disabled .ant-select-selector,
+.ant-input-number-disabled,
+.ant-picker-disabled,
+.ant-radio-button-wrapper-disabled,
+.ant-dropdown-menu-item-disabled,
+.ant-dropdown-menu-item-disabled * {
+  cursor: default !important;
+}

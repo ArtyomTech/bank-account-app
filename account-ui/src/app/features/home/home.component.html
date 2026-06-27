@@ -1,0 +1,263 @@
+<div class="page-container">
+  @if (userId$ | async; as userId) {
+    <!-- Accounts view -->
+    <div class="page-header">
+      <h2>
+        <nz-icon nzType="wallet" nzTheme="outline" style="margin-right: 8px" />
+        My Accounts
+      </h2>
+      @if (fullName$ | async; as name) {
+        <span style="color: #595959; font-size: 14px; font-weight: 500">Welcome, {{ name }}</span>
+      }
+    </div>
+
+    <nz-divider />
+
+    @if (createAccountError$ | async; as err) {
+      <nz-alert nzType="error" [nzMessage]="err" nzShowIcon style="margin-bottom: 16px" />
+    }
+
+    <!-- Create account form -->
+    <nz-card nzTitle="Open New Account" style="margin-bottom: 24px; max-width: 380px">
+      <form nz-form [formGroup]="accountForm" nzLayout="inline" (ngSubmit)="createAccountSubmit(userId)">
+        <nz-form-item>
+          <nz-form-control>
+            <nz-select formControlName="currency" nzSize="large" style="width: 120px">
+              @for (c of currencies; track c) {
+                <nz-option [nzValue]="c" [nzLabel]="c" />
+              }
+            </nz-select>
+          </nz-form-control>
+        </nz-form-item>
+        <nz-form-item>
+          <nz-form-control>
+            <button
+              nz-button
+              nzType="primary"
+              nzSize="large"
+              [nzLoading]="!!(creatingAccount$ | async)"
+              type="submit"
+            >
+              <nz-icon nzType="plus" />
+              Open Account
+            </button>
+          </nz-form-control>
+        </nz-form-item>
+      </form>
+    </nz-card>
+
+    @if (accountsError$ | async; as err) {
+      <nz-alert nzType="error" [nzMessage]="err" nzShowIcon style="margin-bottom: 16px" />
+    }
+
+    @if (loading$ | async) {
+      <div style="text-align: center; padding: 60px 0">
+        <nz-spin nzSize="large" nzTip="Loading accounts…" />
+      </div>
+    } @else {
+      @if ((accounts$ | async)?.length === 0) {
+        <nz-empty nzNotFoundContent="No accounts found for this user" />
+      } @else {
+        <div nz-row [nzGutter]="[16, 16]">
+          @for (account of accounts$ | async; track account.id) {
+            <div nz-col [nzXs]="24" [nzSm]="12" [nzLg]="8">
+              <nz-card
+                class="account-card"
+                [routerLink]="['/accounts', account.id]"
+                nzHoverable
+              >
+                <div class="account-card-header">
+                  <nz-icon nzType="bank" nzTheme="outline" class="account-icon" />
+                  <nz-tag [nzColor]="currencyColors[account.currency]">
+                    {{ account.currency }}
+                  </nz-tag>
+                </div>
+                <nz-statistic
+                  nzTitle="Balance"
+                  [nzValue]="account.balance"
+                  [nzValueStyle]="{ color: '#3f8600', fontSize: '28px' }"
+                  [nzSuffix]="account.currency"
+                />
+                <div class="account-id">
+                  <small style="color: #aaa">{{ account.id | slice: 0 : 8 }}…</small>
+                </div>
+              </nz-card>
+            </div>
+          }
+        </div>
+      }
+    }
+  } @else {
+    <!-- Sign-in / Create user view -->
+    <div class="auth-container">
+      <nz-card class="auth-card" nzTitle="Welcome to Bank App">
+        <nz-icon nzType="bank" nzTheme="outline" class="bank-icon-hero" />
+        <nz-tabs [nzAnimated]="false">
+          <!-- Tab 1: Sign in -->
+          <nz-tab nzTitle="Sign In">
+            @if (userError$ | async; as err) {
+              <nz-alert nzType="error" [nzMessage]="err" nzShowIcon style="margin-bottom: 12px" />
+            }
+            <form nz-form [formGroup]="signInForm" nzLayout="vertical" (ngSubmit)="signIn()">
+              <nz-form-item>
+                <nz-form-label nzRequired>Email</nz-form-label>
+                <nz-form-control nzErrorTip="Valid email is required">
+                  <input
+                    nz-input
+                    formControlName="email"
+                    placeholder="jane@example.com"
+                    nzSize="large"
+                  />
+                </nz-form-control>
+              </nz-form-item>
+              <nz-form-item>
+                <nz-form-label nzRequired>Password</nz-form-label>
+                <nz-form-control nzErrorTip="Password is required">
+                  <input
+                    nz-input
+                    type="password"
+                    formControlName="password"
+                    placeholder="••••••••"
+                    nzSize="large"
+                  />
+                </nz-form-control>
+              </nz-form-item>
+              <button
+                nz-button
+                nzType="primary"
+                nzSize="large"
+                nzBlock
+                [nzLoading]="!!(creating$ | async)"
+                [disabled]="signInForm.invalid"
+                type="submit"
+              >
+                Sign In
+              </button>
+            </form>
+          </nz-tab>
+
+          <!-- Tab 2: Create user -->
+          <nz-tab nzTitle="Register">
+            @if (userError$ | async; as err) {
+              <nz-alert nzType="error" [nzMessage]="err" nzShowIcon style="margin-bottom: 12px" />
+            }
+            <form
+              nz-form
+              [formGroup]="createForm"
+              nzLayout="vertical"
+              (ngSubmit)="createUserSubmit()"
+            >
+              <nz-form-item>
+                <nz-form-label nzRequired>First Name</nz-form-label>
+                <nz-form-control nzErrorTip="First name is required">
+                  <input nz-input formControlName="firstName" placeholder="Jane" nzSize="large" />
+                </nz-form-control>
+              </nz-form-item>
+              <nz-form-item>
+                <nz-form-label nzRequired>Last Name</nz-form-label>
+                <nz-form-control nzErrorTip="Last name is required">
+                  <input nz-input formControlName="lastName" placeholder="Doe" nzSize="large" />
+                </nz-form-control>
+              </nz-form-item>
+              <nz-form-item>
+                <nz-form-label nzRequired>Email</nz-form-label>
+                <nz-form-control nzErrorTip="Valid email is required">
+                  <input
+                    nz-input
+                    formControlName="email"
+                    placeholder="jane@example.com"
+                    nzSize="large"
+                  />
+                </nz-form-control>
+              </nz-form-item>
+              <nz-form-item>
+                <nz-form-label nzRequired>Password</nz-form-label>
+                <nz-form-control nzErrorTip="At least 8 characters">
+                  <input
+                    nz-input
+                    type="password"
+                    formControlName="password"
+                    placeholder="••••••••"
+                    nzSize="large"
+                  />
+                </nz-form-control>
+              </nz-form-item>
+              <button
+                nz-button
+                nzType="primary"
+                nzSize="large"
+                nzBlock
+                [nzLoading]="!!(creating$ | async)"
+                [disabled]="createForm.invalid"
+                type="submit"
+              >
+                <nz-icon nzType="user" />
+                Create User & Continue
+              </button>
+            </form>
+          </nz-tab>
+        </nz-tabs>
+      </nz-card>
+    </div>
+  }
+</div>
+
+<style>
+  .page-container {
+    padding: 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  .page-header {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    margin-bottom: 8px;
+  }
+  .page-header h2 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 600;
+  }
+  .account-card {
+    cursor: pointer;
+    border-radius: 8px;
+  }
+  .account-card-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .account-icon {
+    font-size: 20px;
+    color: #1890ff;
+  }
+  .account-id {
+    margin-top: 8px;
+  }
+  .auth-container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding-top: 40px;
+    min-height: 60vh;
+  }
+  .auth-card {
+    width: 420px;
+    border-radius: 12px;
+  }
+  .auth-card .ant-tabs-content-holder {
+    min-height: 400px;
+  }
+  .auth-card .ant-tabs-tabpane {
+    min-height: 370px;
+  }
+  .bank-icon-hero {
+    font-size: 48px;
+    color: #1890ff;
+    display: block;
+    text-align: center;
+    margin-bottom: 16px;
+  }
+</style>
